@@ -17,6 +17,7 @@ const geistMono = Geist_Mono({
 
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { MockProvider } from "./mock-provider";
+import { Navbar } from "@/components/navbar";
 
 export default function RootLayout({
   children,
@@ -24,12 +25,15 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="en" className="dark" style={{ colorScheme: 'dark' }}>
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+        className={`${geistSans.variable} ${geistMono.variable} antialiased min-h-screen flex flex-col bg-background`}
       >
         <MockProvider isEnabled={process.env.NEXT_USE_MSW === 'true'}>
-          <TooltipProvider>{children}</TooltipProvider>
+          <TooltipProvider>
+            <Navbar />
+            <main className="flex-1 flex flex-col">{children}</main>
+          </TooltipProvider>
         </MockProvider>
       </body>
     </html>
