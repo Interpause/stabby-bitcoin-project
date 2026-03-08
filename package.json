@@ -31,6 +31,7 @@
     "eslint-config-next": "16.1.6",
     "orval": "^8.5.3",
     "prettier": "^3.8.1",
+    "skills": "^1.4.4",
     "tailwindcss": "^4",
     "typescript": "^5"
   }
