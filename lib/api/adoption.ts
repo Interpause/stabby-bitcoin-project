@@ -26,12 +26,16 @@ export function useGlobalAdoptionMap(): { data: UiMapMarker[] | undefined; isLoa
 export function useAdoptionLeaderboard(): { data: UiAdoptionLeaderboardItem[] | undefined; isLoading: boolean } {
   const { data: response, isLoading } = useCompaniesPublicTreasury('governments');
   const [gdpData, setGdpData] = useState<Record<string, number> | null>(null);
+  const [reservesData, setReservesData] = useState<Record<string, number> | null>(null);
 
   useEffect(() => {
-    fetch('/data/gdp.json')
-      .then(r => r.json())
-      .then(setGdpData)
-      .catch(console.error);
+    Promise.all([
+      fetch('/data/gdp.json').then(r => r.json()),
+      fetch('/data/reserves.json').then(r => r.json())
+    ]).then(([gdp, reserves]) => {
+      setGdpData(gdp);
+      setReservesData(reserves);
+    }).catch(console.error);
   }, []);
 
   const entities: any[] = (response?.data as any)?.companies || (response?.data as any)?.governments || [];
@@ -47,6 +51,12 @@ export function useAdoptionLeaderboard(): { data: UiAdoptionLeaderboardItem[] | 
     }
     const gdpPct = gdp ? (usd / gdp) * 100 : 0;
 
+    let reserve = 0;
+    if (reservesData) {
+      reserve = reservesData[countryCode] || reservesData[entity.name || ''] || 0;
+    }
+    const reservePct = reserve ? (usd / reserve) * 100 : 0;
+
     return {
       id: entity.name?.toLowerCase().replace(/\s+/g, '-') || 'unknown',
       name: entity.name || 'Unknown',
@@ -55,9 +65,11 @@ export function useAdoptionLeaderboard(): { data: UiAdoptionLeaderboardItem[] | 
       totalValueUsd: usd,
       reserveAllocationGdpPercent: gdpPct,
       totalGdpUsd: gdp,
+      reserveAllocationReservesPercent: reservePct,
+      totalReservesUsd: reserve,
       policyStatus: 'Neutral',
     };
   });
 
-  return { data: response && gdpData ? leaderboard : undefined, isLoading: isLoading || !gdpData };
+  return { data: response && gdpData && reservesData ? leaderboard : undefined, isLoading: isLoading || !gdpData || !reservesData };
 }

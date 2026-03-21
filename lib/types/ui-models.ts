@@ -17,5 +17,7 @@ export interface UiAdoptionLeaderboardItem {
   totalValueUsd: number;
   reserveAllocationGdpPercent: number;
   totalGdpUsd: number;
+  reserveAllocationReservesPercent: number;
+  totalReservesUsd: number;
   policyStatus: PolicyStatus;
 }

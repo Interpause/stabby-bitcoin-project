@@ -61,7 +61,12 @@ export const columns: ColumnDef<UiAdoptionLeaderboardItem>[] = [
   {
     accessorKey: "reserveAllocationGdpPercent",
     header: () => <div className="text-right">% of GDP</div>,
-    cell: ({ row }) => <GdpCell row={row.original} />
+    cell: ({ row }) => <PercentageCell row={row.original} pctKey="reserveAllocationGdpPercent" usdKey="totalGdpUsd" />
+  },
+  {
+    accessorKey: "reserveAllocationReservesPercent",
+    header: () => <div className="text-right">% of Reserves</div>,
+    cell: ({ row }) => <PercentageCell row={row.original} pctKey="reserveAllocationReservesPercent" usdKey="totalReservesUsd" />
   },
 ]
 
@@ -112,13 +117,13 @@ function HoldingsCell({ row }: { row: UiAdoptionLeaderboardItem }) {
   );
 }
 
-function GdpCell({ row }: { row: UiAdoptionLeaderboardItem }) {
+function PercentageCell({ row, pctKey, usdKey }: { row: UiAdoptionLeaderboardItem, pctKey: 'reserveAllocationGdpPercent' | 'reserveAllocationReservesPercent', usdKey: 'totalGdpUsd' | 'totalReservesUsd' }) {
   const [showRaw, setShowRaw] = React.useState(false);
   
   const btcAmount = row.totalHoldingsBtc;
-  const pct = row.reserveAllocationGdpPercent;
+  const pct = row[pctKey];
   const usdValue = row.totalValueUsd;
-  const gdpUsd = row.totalGdpUsd;
+  const denominatorUsd = row[usdKey];
 
   if (btcAmount === 0 || isNaN(pct) || pct === 0) {
     return <div className="text-right text-muted-foreground tabular-nums">—</div>;
@@ -138,7 +143,7 @@ function GdpCell({ row }: { row: UiAdoptionLeaderboardItem }) {
     >
       {showRaw ? (
         <span className="text-xs transition-all duration-200">
-          ${formatNumber(usdValue)} / ${formatNumber(gdpUsd)}
+          ${formatNumber(usdValue)} / ${formatNumber(denominatorUsd)}
         </span>
       ) : (
         <span className="transition-all duration-200">{pct.toFixed(2)}%</span>
