@@ -4,6 +4,8 @@ import { coinsIdHistory } from '@/sdk/coingecko/coins/coins';
 import type { EntitiesListItem } from '@/sdk/coingecko/model';
 import { UiMapMarker, UiAdoptionLeaderboardItem } from '../types/ui-models';
 
+let globalHistoryCutoffTimestamp = 0;
+
 const withRetry = async <T>(fn: () => Promise<T>, retries = 5, initialDelay = 2000): Promise<T> => {
   let delay = initialDelay;
   for (let i = 0; i < retries; i++) {
@@ -119,6 +121,11 @@ export function useAdoptionLeaderboard(): { data: UiAdoptionLeaderboardItem[] | 
               const btc = t.holding_net_change || 0;
 
               if (valUsd === 0 && btc > 0 && t.date) {
+                if (globalHistoryCutoffTimestamp && t.date <= globalHistoryCutoffTimestamp) {
+                  console.log(`[Backfill] Skipping historical fetch for ${t.date} (before 401 cutoff)`);
+                  continue;
+                }
+
                 try {
                   const dateStr = formatCgDate(t.date);
                   const histResponse = await withRetry(() => coinsIdHistory({ date: dateStr }, 'bitcoin'));
@@ -131,8 +138,13 @@ export function useAdoptionLeaderboard(): { data: UiAdoptionLeaderboardItem[] | 
                   // Update the estimate incrementally so the UI shows progress
                   const newEstimate = totalBuyUsd / totalBuyBtc;
                   setComputedPrices(prev => ({ ...prev, [entityId]: newEstimate }));
-                } catch (e) {
-                  console.error(`[Backfill] Failed to fetch historical price for ${entityId} on ${t.date}`, e);
+                } catch (e: unknown) {
+                  if ((e as any)?.status === 401) {
+                    console.warn(`[Backfill] 401 Unauthorized for ${t.date}. Updating global history cutoff.`);
+                    globalHistoryCutoffTimestamp = Math.max(globalHistoryCutoffTimestamp, t.date);
+                  } else {
+                    console.error(`[Backfill] Failed to fetch historical price for ${entityId} on ${t.date}`, e);
+                  }
                 }
               }
             }

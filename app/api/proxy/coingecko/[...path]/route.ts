@@ -49,7 +49,7 @@ export async function GET(request: Request, context: { params: Promise<{ path: s
       throw { status: 429, message: 'CoinGecko API Rate Limited' };
     }
     
-    if (!res.ok) throw new Error(`API returned ${res.status}`);
+    if (!res.ok) throw { status: res.status, message: `API returned ${res.status}` };
     return res.json();
   };
 
@@ -86,9 +86,9 @@ export async function GET(request: Request, context: { params: Promise<{ path: s
     }
 
     return NextResponse.json(finalData);
-  } catch (error: unknown) {
-    if (typeof error === 'object' && error !== null && 'status' in error && error.status === 429) {
-      return NextResponse.json({ error: 'Rate limited' }, { status: 429 });
+  } catch (error: any) {
+    if (typeof error === 'object' && error !== null && 'status' in error) {
+      return NextResponse.json({ error: error.message || 'API Error' }, { status: error.status });
     }
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     console.error(`[PROXY] Failed to fetch data:`, errorMessage);
