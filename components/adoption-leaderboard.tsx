@@ -8,6 +8,7 @@ import {
   useReactTable,
   getSortedRowModel,
   SortingState,
+  Column,
 } from "@tanstack/react-table"
 import { ArrowUpDown } from "lucide-react"
 
@@ -31,6 +32,17 @@ import { Button } from "@/components/ui/button"
 import { useAdoptionLeaderboard } from "@/lib/api/adoption"
 import { UiAdoptionLeaderboardItem } from "@/lib/types/ui-models"
 
+const SortableHeader = ({ column, title, className = "" }: { column: Column<UiAdoptionLeaderboardItem, unknown>, title: string, className?: string }) => (
+  <Button
+    variant="ghost"
+    onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+    className={`hover:bg-transparent px-0 font-semibold transition-colors ${className}`}
+  >
+    {title}
+    <ArrowUpDown className="ml-2 h-4 w-4 opacity-50" />
+  </Button>
+);
+
 export const columns: ColumnDef<UiAdoptionLeaderboardItem>[] = [
   {
     accessorKey: "name",
@@ -43,30 +55,33 @@ export const columns: ColumnDef<UiAdoptionLeaderboardItem>[] = [
     ),
   },
   {
-    accessorKey: "totalHoldingsBtc",
-    header: ({ column }) => {
-      return (
-        <Button
-          variant="ghost"
-          onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-          className="hover:bg-transparent px-0 text-amber-600/80 hover:text-amber-600 font-semibold"
-        >
-          Holdings
-          <ArrowUpDown className="ml-2 h-4 w-4" />
-        </Button>
-      )
-    },
-    cell: ({ row }) => <HoldingsCell row={row.original} />
+    accessorFn: (row) => row.totalHoldingsBtc === 0 ? undefined : row.totalHoldingsBtc,
+    id: "totalHoldingsBtc",
+    header: ({ column }) => <SortableHeader column={column} title="Holdings" className="text-slate-900 dark:text-slate-100" />,
+    cell: ({ row }) => <HoldingsCell row={row.original} />,
+    sortUndefined: 'last',
   },
   {
-    accessorKey: "reserveAllocationGdpPercent",
-    header: () => <div className="text-right">% of GDP</div>,
-    cell: ({ row }) => <PercentageCell row={row.original} pctKey="reserveAllocationGdpPercent" usdKey="totalGdpUsd" />
+    accessorFn: (row) => (row.totalHoldingsBtc === 0 || row.reserveAllocationGdpPercent === 0) ? undefined : row.reserveAllocationGdpPercent,
+    id: "reserveAllocationGdpPercent",
+    header: ({ column }) => (
+      <div className="text-right">
+        <SortableHeader column={column} title="% of GDP" className="text-slate-900 dark:text-slate-100 justify-end w-full" />
+      </div>
+    ),
+    cell: ({ row }) => <PercentageCell row={row.original} pctKey="reserveAllocationGdpPercent" usdKey="totalGdpUsd" />,
+    sortUndefined: 'last',
   },
   {
-    accessorKey: "reserveAllocationReservesPercent",
-    header: () => <div className="text-right">% of Reserves</div>,
-    cell: ({ row }) => <PercentageCell row={row.original} pctKey="reserveAllocationReservesPercent" usdKey="totalReservesUsd" />
+    accessorFn: (row) => (row.totalHoldingsBtc === 0 || row.reserveAllocationReservesPercent === 0) ? undefined : row.reserveAllocationReservesPercent,
+    id: "reserveAllocationReservesPercent",
+    header: ({ column }) => (
+      <div className="text-right">
+        <SortableHeader column={column} title="% of Reserves" className="text-slate-900 dark:text-slate-100 justify-end w-full" />
+      </div>
+    ),
+    cell: ({ row }) => <PercentageCell row={row.original} pctKey="reserveAllocationReservesPercent" usdKey="totalReservesUsd" />,
+    sortUndefined: 'last',
   },
 ]
 
@@ -99,18 +114,18 @@ function HoldingsCell({ row }: { row: UiAdoptionLeaderboardItem }) {
     >
       {showExact ? (
         <div className="flex flex-col text-[10px] leading-none space-y-0.5 transition-all duration-200">
-          <div className="font-bold tabular-nums text-amber-500">
+          <div className="font-bold tabular-nums text-slate-900 dark:text-slate-100">
             {btcAmount.toLocaleString(undefined, { maximumFractionDigits: 8 })} ₿
           </div>
-          <div className="font-medium text-white tabular-nums">
+          <div className="font-medium text-slate-900 dark:text-slate-100 tabular-nums">
             ${usdAmount.toLocaleString(undefined, { maximumFractionDigits: 2 })}
           </div>
         </div>
       ) : (
         <div className="flex items-center gap-1.5 transition-all duration-200">
-          <div className="font-bold tabular-nums text-amber-500">{formatNumber(btcAmount)} ₿</div>
+          <div className="font-bold tabular-nums text-slate-900 dark:text-slate-100">{formatNumber(btcAmount)} ₿</div>
           <div className="text-slate-400 font-medium text-sm">/</div>
-          <div className="font-medium text-white tabular-nums">${formatNumber(usdAmount)}</div>
+          <div className="font-medium text-slate-900 dark:text-slate-100 tabular-nums">${formatNumber(usdAmount)}</div>
         </div>
       )}
     </div>
