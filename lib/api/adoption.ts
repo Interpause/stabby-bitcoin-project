@@ -1,7 +1,6 @@
 import { useEntitiesList } from '@/sdk/coingecko/public-treasury/public-treasury';
 import type { EntitiesListItem } from '@/sdk/coingecko/model';
 import { UiMapMarker, UiAdoptionLeaderboardItem } from '../types/ui-models';
-import { missingDataMock } from '../mock/missing-data';
 
 export function useGlobalAdoptionMap(): { data: UiMapMarker[] | undefined; isLoading: boolean } {
   const { data: response, isLoading } = useEntitiesList({ entity_type: 'government' });
@@ -10,15 +9,13 @@ export function useGlobalAdoptionMap(): { data: UiMapMarker[] | undefined; isLoa
   const mapMarkers: UiMapMarker[] = entities
     .filter((e): e is EntitiesListItem & { id: string } => !!e.id)
     .map((entity) => {
-      const customData = missingDataMock[entity.id] || missingDataMock['unknown'];
-      
       return {
         id: entity.id,
         name: entity.name || 'Unknown',
-        lat: customData.lat,
-        lng: customData.lng,
-        policyStatus: customData.policyStatus,
-        totalHoldingsBtc: customData.btcHoldings, 
+        lat: 0, // Will be replaced by real data/geocoding soon
+        lng: 0,
+        policyStatus: 'Neutral',
+        totalHoldingsBtc: 0, 
       };
     });
 
@@ -32,21 +29,14 @@ export function useAdoptionLeaderboard(): { data: UiAdoptionLeaderboardItem[] | 
   const leaderboard: UiAdoptionLeaderboardItem[] = entities
     .filter((e): e is EntitiesListItem & { id: string } => !!e.id)
     .map((entity) => {
-      const customData = missingDataMock[entity.id] || missingDataMock['unknown'];
-      
-      // Calculate Reserve % of GDP if applicable
-      const reservePercent = customData.gdpUsd > 0 
-          ? (customData.totalValueUsd / customData.gdpUsd) * 100 
-          : 0;
-
       return {
         id: entity.id,
         name: entity.name || 'Unknown',
         countryCode: entity.country || 'US',
-        totalHoldingsBtc: customData.btcHoldings, 
-        totalValueUsd: customData.totalValueUsd,
-        reserveAllocationGdpPercent: reservePercent,
-        policyStatus: customData.policyStatus,
+        totalHoldingsBtc: 0, 
+        totalValueUsd: 0,
+        reserveAllocationGdpPercent: 0,
+        policyStatus: 'Neutral',
       };
     });
 
