@@ -127,3 +127,59 @@ This file contains response examples that have been deemed by me (the user) to b
   ]
 }
 ```
+
+## Financial Modeling Prep (FMP)
+
+Note we don't have an SDK for this. There is no OpenAPI Spec File, so you will just have to write regular fetch requests in the Next.JS proxy.
+
+### https://financialmodelingprep.com/stable/treasury-rates
+
+Query Params:
+- apikey
+- from (e.g. 2025-09-09)
+- to (e.g. 2025-12-09)
+
+```json
+[
+	{
+		"date": "2024-02-29",
+		"month1": 5.53,
+		"month2": 5.5,
+		"month3": 5.45,
+		"month6": 5.3,
+		"year1": 5.01,
+		"year2": 4.64,
+		"year3": 4.43,
+		"year5": 4.26,
+		"year7": 4.28,
+		"year10": 4.25,
+		"year20": 4.51,
+		"year30": 4.38
+	}
+]
+```
+
+### https://financialmodelingprep.com/stable/historical-price-eod/full
+
+Query Params:
+- apikey
+- symbol (e.g. ^GSPC, GCUSD)
+- from (e.g. 2025-09-09)
+- to (e.g. 2025-12-09)
+
+```json
+[
+	{
+		"symbol": "^GSPC",
+		"date": "2025-07-24",
+		"open": 6368.6,
+		"high": 6379.54,
+		"low": 6360.57,
+		"close": 6365.77,
+		"volume": 1499302000,
+		"change": -2.83,
+		"changePercent": -0.04443677,
+		"vwap": 6368.63
+	}
+]
+```

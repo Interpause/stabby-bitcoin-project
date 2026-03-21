@@ -42,3 +42,4 @@ next-env.d.ts
 
 /sdk/*/*
 !/sdk/.gitkeep
+!.env.example

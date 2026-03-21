@@ -1,6 +1,7 @@
 import { GlobalAdoptionMap } from "@/components/global-adoption-map";
 import { AdoptionLeaderboard } from "@/components/adoption-leaderboard";
 import { UsReserveCards } from "@/components/us-reserve-cards";
+import { MultiAssetChart } from "@/components/multi-asset-chart";
 
 export default function AdoptionDashboardRoute() {
   return (
@@ -14,9 +15,15 @@ export default function AdoptionDashboardRoute() {
           </p>
         </div>
 
-        <section className="flex-1 min-h-0 relative bg-slate-900/40 rounded-xl border border-slate-800/50 overflow-hidden">
-          <GlobalAdoptionMap />
-        </section>
+        <div className="flex-1 min-h-0 flex gap-4">
+          <section className="flex-1 min-h-0 relative bg-slate-900/40 rounded-xl border border-slate-800/50 overflow-hidden">
+            <GlobalAdoptionMap />
+          </section>
+          
+          <section className="flex-1 min-h-0 relative">
+            <MultiAssetChart />
+          </section>
+        </div>
         
         <section className="shrink-0 space-y-3 pt-2">
           <h2 className="text-sm font-semibold uppercase tracking-wider text-amber-500/80">Global Market Overview</h2>
