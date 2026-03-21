@@ -29,7 +29,7 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased min-h-screen flex flex-col bg-background`}
       >
-        <MockProvider isEnabled={process.env.NEXT_USE_MSW === 'true'}>
+        <MockProvider isEnabled={process.env.NEXT_USE_MOCK === 'true'}>
           <TooltipProvider>
             <Navbar />
             <main className="flex-1 flex flex-col">{children}</main>

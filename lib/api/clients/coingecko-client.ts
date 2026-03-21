@@ -8,23 +8,22 @@ export const coingeckoInstance = async <T>(
   url: string,
   options: RequestInit
 ): Promise<T> => {
-  const apiKey = process.env.NEXT_PUBLIC_COINGECKO_API_KEY;
-  const baseUrl = process.env.NEXT_PUBLIC_COINGECKO_BASE_URL || 'https://api.coingecko.com/api/v3';
+  // Always use the relative proxy path for the browser
+  const baseUrl = '/api/proxy/coingecko';
+  
+  // If we are on the server (SSR), baseFetcher will automatically try to resolve it
+  // or we provide an absolute URL. Since SWR is mostly client side, '/api/proxy' is fine.
+  const absoluteBaseUrl = typeof window !== 'undefined' 
+    ? window.location.origin + baseUrl 
+    : (process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000') + baseUrl;
 
   if (process.env.NODE_ENV === 'development') {
-    console.log(`[DEBUG] CoinGecko API Key found: ${apiKey ? 'Yes (starts with ' + apiKey.slice(0, 5) + '...)' : 'No'}`);
-  }
-
-  // CoinGecko Demo API requires the key as a query param
-  const params: Record<string, string | undefined> = {};
-  if (apiKey) {
-    params['x_cg_demo_api_key'] = apiKey;
+    console.log(`[DEBUG] Fetching CoinGecko data via Proxy: ${url}`);
   }
 
   return baseFetcher<T>(url, {
     ...options,
-    baseUrl,
-    params,
+    baseUrl: absoluteBaseUrl,
   });
 };
 
