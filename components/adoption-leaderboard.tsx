@@ -64,9 +64,7 @@ export const columns: ColumnDef<UiAdoptionLeaderboardItem>[] = [
   {
     accessorFn: (row) => {
       if (row.totalHoldingsBtc === 0) return undefined;
-      // return (row.totalEntryValueUsd !== undefined && row.totalEntryValueUsd > 0) ? (row.totalEntryValueUsd / row.totalHoldingsBtc) : -1;
-      // Above shows the Entry Price per unit bitcoin, the below is total Entry Price.
-      return (row.totalEntryValueUsd !== undefined && row.totalEntryValueUsd > 0) ? (row.totalEntryValueUsd) : -1;
+      return (row.totalEntryValueUsd !== undefined && row.totalEntryValueUsd > 0) ? (row.totalEntryValueUsd / row.totalHoldingsBtc) : -1;
     },
     id: "entryPrice",
     header: ({ column }) => (

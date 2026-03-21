@@ -1,6 +1,6 @@
 import { useEffect, useState, useMemo, useRef } from 'react';
 import { useEntitiesList, useCompaniesPublicTreasury, publicTreasuryTransactionHistory } from '@/sdk/coingecko/public-treasury/public-treasury';
-import { coinsIdHistory } from '@/sdk/coingecko/coins/coins';
+import { coinsIdHistory, useCoinsId } from '@/sdk/coingecko/coins/coins';
 import type { EntitiesListItem } from '@/sdk/coingecko/model';
 import { UiMapMarker, UiAdoptionLeaderboardItem } from '../types/ui-models';
 
@@ -199,4 +199,44 @@ export function useAdoptionLeaderboard(): { data: UiAdoptionLeaderboardItem[] | 
   }), [entities, gdpData, reservesData, computedPrices, computingStatus]);
 
   return { data: response && gdpData && reservesData ? leaderboard : undefined, isLoading: isLoading || !gdpData || !reservesData };
+}
+
+export function useGlobalStats() {
+  const { data: btcData, isLoading: isBtcLoading } = useCoinsId({
+    localization: false,
+    tickers: false,
+    community_data: false,
+    developer_data: false,
+  }, 'bitcoin');
+
+  const { data: govT, isLoading: isGovLoading } = useCompaniesPublicTreasury('governments');
+  const [reservesData, setReservesData] = useState<Record<string, number> | null>(null);
+
+  useEffect(() => {
+    fetch('/data/reserves.json')
+      .then(r => r.json())
+      .then(d => setReservesData(d))
+      .catch(console.error);
+  }, []);
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const totalHeldByGov = (govT as any)?.data?.total_value_usd || 0;
+  
+  const totalGovReserves = useMemo(() => {
+    if (!reservesData) return 0;
+    return Object.values(reservesData).reduce((a, b) => a + b, 0);
+  }, [reservesData]);
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const currentPrice = (btcData as any)?.data?.market_data?.current_price?.usd || 0;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const marketCap = (btcData as any)?.data?.market_data?.market_cap?.usd || 0;
+
+  return {
+    totalHeldByGov,
+    totalGovReserves,
+    currentPrice,
+    marketCap,
+    isLoading: isBtcLoading || isGovLoading || !reservesData
+  };
 }

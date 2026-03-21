@@ -19,7 +19,7 @@ export default function AdoptionDashboardRoute() {
         </section>
         
         <section className="shrink-0 space-y-3 pt-2">
-          <h2 className="text-sm font-semibold uppercase tracking-wider text-amber-500/80">U.S. Strategic Reserve Anniversary</h2>
+          <h2 className="text-sm font-semibold uppercase tracking-wider text-amber-500/80">Global Market Overview</h2>
           <UsReserveCards />
         </section>
       </div>
