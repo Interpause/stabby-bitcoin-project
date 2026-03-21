@@ -8,9 +8,9 @@ export function Navbar() {
   
   const links = [
     { href: '/', label: 'Home' },
-    { href: '/adoption', label: 'Adoption' },
-    { href: '/macro', label: 'Macro' },
-    { href: '/portfolio', label: 'Portfolio' },
+    // { href: '/adoption', label: 'Adoption' },
+    // { href: '/macro', label: 'Macro' },
+    // { href: '/portfolio', label: 'Portfolio' },
   ];
 
   return (
