@@ -10,7 +10,7 @@ import {
   SortingState,
   Column,
 } from "@tanstack/react-table"
-import { ArrowUpDown } from "lucide-react"
+import { ArrowUpDown, Triangle } from "lucide-react"
 
 const getFlagEmoji = (countryCode: string) => {
   if (!countryCode) return '🏳️';
@@ -31,7 +31,6 @@ import {
 import { Button } from "@/components/ui/button"
 import { useAdoptionLeaderboard } from "@/lib/api/adoption"
 import { UiAdoptionLeaderboardItem } from "@/lib/types/ui-models"
-import { usePublicTreasuryTransactionHistory } from "@/sdk/coingecko/public-treasury/public-treasury"
 
 const SortableHeader = ({ column, title, className = "" }: { column: Column<UiAdoptionLeaderboardItem, unknown>, title: string, className?: string }) => (
   <Button
@@ -67,10 +66,10 @@ export const columns: ColumnDef<UiAdoptionLeaderboardItem>[] = [
       if (row.totalHoldingsBtc === 0) return undefined;
       return (row.totalEntryValueUsd !== undefined && row.totalEntryValueUsd > 0) ? (row.totalEntryValueUsd / row.totalHoldingsBtc) : -1;
     },
-    id: "avgPurchasePrice",
+    id: "entryPrice",
     header: ({ column }) => (
       <div className="text-right">
-        <SortableHeader column={column} title="Avg. Purchase Price" className="text-slate-900 dark:text-slate-100 justify-end w-full" />
+        <SortableHeader column={column} title="Entry Price" className="text-slate-900 dark:text-slate-100 justify-end w-full" />
       </div>
     ),
     cell: ({ row }) => <AvgPurchasePriceCell row={row.original} />,
@@ -148,7 +147,7 @@ function HoldingsCell({ row }: { row: UiAdoptionLeaderboardItem }) {
 }
 
 function AvgPurchasePriceCell({ row }: { row: UiAdoptionLeaderboardItem }) {
-  const { totalEntryValueUsd, totalHoldingsBtc, id } = row;
+  const { totalEntryValueUsd, totalHoldingsBtc, totalValueUsd } = row;
 
   if (totalHoldingsBtc === 0) {
     return <div className="text-right text-muted-foreground tabular-nums">—</div>;
@@ -156,51 +155,35 @@ function AvgPurchasePriceCell({ row }: { row: UiAdoptionLeaderboardItem }) {
 
   if (totalEntryValueUsd !== undefined && totalEntryValueUsd > 0) {
     const avgPrice = totalEntryValueUsd / totalHoldingsBtc;
-    console.log(`[AvgPurchasePriceCell] ${id}: Using totalEntryValueUsd (${totalEntryValueUsd}) / totalHoldingsBtc (${totalHoldingsBtc}) = ${avgPrice}`);
+    const currentPrice = totalValueUsd / totalHoldingsBtc;
+    
     return (
-      <div className="text-right font-medium text-slate-900 dark:text-slate-100 tabular-nums">
-        ${avgPrice.toLocaleString(undefined, { maximumFractionDigits: 0 })}
+      <div className="flex flex-col items-end gap-0.5">
+        <div className="text-right font-medium text-slate-900 dark:text-slate-100 tabular-nums">
+          ${avgPrice.toLocaleString(undefined, { maximumFractionDigits: 0 })}
+        </div>
+        <PricePerformance entryPrice={avgPrice} currentPrice={currentPrice} />
       </div>
     );
   }
 
-  // Fallback to fetch transaction history 
-  console.log(`[AvgPurchasePriceCell] ${id}: Missing or 0 totalEntryValueUsd. Falling back to transaction history.`);
-  return <AvgPurchasePriceFallback entityId={id} />;
+  return <div className="text-right text-muted-foreground tabular-nums">—</div>;
 }
 
-function AvgPurchasePriceFallback({ entityId }: { entityId: string }) {
-  const { data, isLoading } = usePublicTreasuryTransactionHistory(undefined, entityId);
+function PricePerformance({ entryPrice, currentPrice }: { entryPrice: number, currentPrice: number }) {
+  if (!entryPrice || !currentPrice) return null;
+  
+  const isLower = entryPrice < currentPrice;
+  const diffPct = Math.abs((entryPrice - currentPrice) / currentPrice) * 100;
 
-  if (isLoading) {
-    return <div className="text-right text-muted-foreground tabular-nums text-[10px] animate-pulse">Calculating...</div>;
-  }
+  if (Math.abs(diffPct) < 0.01) return null;
 
-  const transactions = (data as any)?.transactions || [];
-  const buys = transactions.filter((t: any) => t.type === 'buy');
-
-  let totalBuyUsd = 0;
-  let totalBuyBtc = 0;
-
-  for (const t of buys) {
-    if (t.transaction_value_usd !== undefined && t.holding_net_change !== undefined) {
-      totalBuyUsd += t.transaction_value_usd;
-      totalBuyBtc += t.holding_net_change;
-    }
-  }
-
-  console.log(`[AvgPurchasePriceFallback] ${entityId}: Retrieved ${transactions.length} total txs. Filtered to ${buys.length} buys. Computed ${totalBuyUsd} total usd / ${totalBuyBtc} btc`);
-
-  if (totalBuyBtc > 0) {
-    const avgPrice = totalBuyUsd / totalBuyBtc;
-    return (
-      <div className="text-right font-medium text-slate-900 dark:text-slate-100 tabular-nums">
-        ${avgPrice.toLocaleString(undefined, { maximumFractionDigits: 0 })}
-      </div>
-    );
-  }
-
-  return <div className="text-right text-muted-foreground tabular-nums text-[10px]">—</div>;
+  return (
+    <div className={`flex items-center gap-1 text-[10px] font-bold ${isLower ? 'text-emerald-500' : 'text-red-500'}`}>
+      <Triangle className={`h-2 w-2 fill-current ${isLower ? 'rotate-180' : ''}`} />
+      <span>{diffPct.toFixed(1)}% {isLower ? 'lower' : 'higher'}</span>
+    </div>
+  );
 }
 
 function PercentageCell({ row, pctKey, usdKey }: { row: UiAdoptionLeaderboardItem, pctKey: 'reserveAllocationGdpPercent' | 'reserveAllocationReservesPercent', usdKey: 'totalGdpUsd' | 'totalReservesUsd' }) {
