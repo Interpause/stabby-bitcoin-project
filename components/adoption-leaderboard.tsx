@@ -10,7 +10,7 @@ import {
   SortingState,
   Column,
 } from "@tanstack/react-table"
-import { ArrowUpDown, Triangle } from "lucide-react"
+import { ArrowUpDown, Triangle, Loader2 } from "lucide-react"
 
 const getFlagEmoji = (countryCode: string) => {
   if (!countryCode) return '🏳️';
@@ -64,7 +64,9 @@ export const columns: ColumnDef<UiAdoptionLeaderboardItem>[] = [
   {
     accessorFn: (row) => {
       if (row.totalHoldingsBtc === 0) return undefined;
-      return (row.totalEntryValueUsd !== undefined && row.totalEntryValueUsd > 0) ? (row.totalEntryValueUsd / row.totalHoldingsBtc) : -1;
+      // return (row.totalEntryValueUsd !== undefined && row.totalEntryValueUsd > 0) ? (row.totalEntryValueUsd / row.totalHoldingsBtc) : -1;
+      // Above shows the Entry Price per unit bitcoin, the below is total Entry Price.
+      return (row.totalEntryValueUsd !== undefined && row.totalEntryValueUsd > 0) ? (row.totalEntryValueUsd) : -1;
     },
     id: "entryPrice",
     header: ({ column }) => (
@@ -147,7 +149,7 @@ function HoldingsCell({ row }: { row: UiAdoptionLeaderboardItem }) {
 }
 
 function AvgPurchasePriceCell({ row }: { row: UiAdoptionLeaderboardItem }) {
-  const { totalEntryValueUsd, totalHoldingsBtc, totalValueUsd } = row;
+  const { totalEntryValueUsd, totalHoldingsBtc, totalValueUsd, isComputingEntryPrice } = row;
 
   if (totalHoldingsBtc === 0) {
     return <div className="text-right text-muted-foreground tabular-nums">—</div>;
@@ -159,10 +161,22 @@ function AvgPurchasePriceCell({ row }: { row: UiAdoptionLeaderboardItem }) {
     
     return (
       <div className="flex flex-col items-end gap-0.5">
-        <div className="text-right font-medium text-slate-900 dark:text-slate-100 tabular-nums">
-          ${avgPrice.toLocaleString(undefined, { maximumFractionDigits: 0 })}
+        <div className="flex items-center gap-2">
+          {isComputingEntryPrice && <Loader2 className="h-3 w-3 animate-spin text-muted-foreground" />}
+          <div className="text-right font-medium text-slate-900 dark:text-slate-100 tabular-nums">
+            ${avgPrice.toLocaleString(undefined, { maximumFractionDigits: 0 })}
+          </div>
         </div>
         <PricePerformance entryPrice={avgPrice} currentPrice={currentPrice} />
+      </div>
+    );
+  }
+
+  if (isComputingEntryPrice) {
+    return (
+      <div className="flex items-center justify-end gap-2 text-right text-muted-foreground text-[10px]">
+        <Loader2 className="h-3 w-3 animate-spin" />
+        <span>Computing...</span>
       </div>
     );
   }

@@ -21,4 +21,5 @@ export interface UiAdoptionLeaderboardItem {
   reserveAllocationReservesPercent: number;
   totalReservesUsd: number;
   policyStatus: PolicyStatus;
+  isComputingEntryPrice?: boolean;
 }

@@ -1,8 +1,26 @@
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState, useMemo, useRef } from 'react';
 import { useEntitiesList, useCompaniesPublicTreasury, publicTreasuryTransactionHistory } from '@/sdk/coingecko/public-treasury/public-treasury';
 import { coinsIdHistory } from '@/sdk/coingecko/coins/coins';
 import type { EntitiesListItem } from '@/sdk/coingecko/model';
 import { UiMapMarker, UiAdoptionLeaderboardItem } from '../types/ui-models';
+
+const withRetry = async <T>(fn: () => Promise<T>, retries = 5, initialDelay = 2000): Promise<T> => {
+  let delay = initialDelay;
+  for (let i = 0; i < retries; i++) {
+    try {
+      return await fn();
+    } catch (e: unknown) {
+      if ((e as any)?.status === 429 && i < retries - 1) {
+        console.warn(`[Client] 429 Rate limited. Retrying in ${delay}ms...`);
+        await new Promise(r => setTimeout(r, delay));
+        delay = (delay * 2) + (Math.random() * 1000); // exponential + jitter
+        continue;
+      }
+      throw e;
+    }
+  }
+  throw new Error('Max retries reached');
+};
 
 export function useGlobalAdoptionMap(): { data: UiMapMarker[] | undefined; isLoading: boolean } {
   const { data: response, isLoading } = useEntitiesList({ entity_type: 'government' });
@@ -29,6 +47,8 @@ export function useAdoptionLeaderboard(): { data: UiAdoptionLeaderboardItem[] | 
   const [gdpData, setGdpData] = useState<Record<string, number> | null>(null);
   const [reservesData, setReservesData] = useState<Record<string, number> | null>(null);
   const [computedPrices, setComputedPrices] = useState<Record<string, number>>({});
+  const [computingStatus, setComputingStatus] = useState<Record<string, boolean>>({});
+  const fetchingRef = useRef<Set<string>>(new Set());
 
   // Helper to format date for CoinGecko: dd-mm-yyyy
   const formatCgDate = (timestamp: number) => {
@@ -58,61 +78,73 @@ export function useAdoptionLeaderboard(): { data: UiAdoptionLeaderboardItem[] | 
   useEffect(() => {
     if (!entities.length) return;
 
-    const backfill = async () => {
-      const newComputedPrices = { ...computedPrices };
-      let changed = false;
-
-      for (const entity of entities) {
-        const entityId = entity.name?.toLowerCase().replace(/\s+/g, '-') || 'unknown';
+    for (const entity of entities) {
+      const entityId = entity.name?.toLowerCase().replace(/\s+/g, '-') || 'unknown';
+      
+      // Only backfill if we have holdings, no entry value from main API, and haven't started yet
+      if (entity.total_holdings > 0 && (!entity.total_entry_value_usd || entity.total_entry_value_usd === 0) && !fetchingRef.current.has(entityId)) {
+        fetchingRef.current.add(entityId);
+        setComputingStatus(prev => ({ ...prev, [entityId]: true }));
         
-        // Only backfill if we have holdings and no entry value from main API
-        if (entity.total_holdings > 0 && (!entity.total_entry_value_usd || entity.total_entry_value_usd === 0) && !computedPrices[entityId]) {
+        // Fire and forget asynchronous loading
+        (async () => {
           try {
             console.log(`[Backfill] Computing entry price for ${entityId}...`);
-            const txResponse = await publicTreasuryTransactionHistory(undefined, entityId);
+            const txResponse = await withRetry(() => publicTreasuryTransactionHistory(undefined, entityId));
             const transactions = (txResponse as any)?.data?.transactions || [];
             const buys = transactions.filter((t: any) => t.type === 'buy');
 
             let totalBuyUsd = 0;
             let totalBuyBtc = 0;
 
+            // Fast pass: compute using transactions that already have valid USD values
+            for (const t of buys) {
+              const valUsd = t.transaction_value_usd || 0;
+              const btc = t.holding_net_change || 0;
+              if (valUsd > 0 && btc > 0) {
+                totalBuyUsd += valUsd;
+                totalBuyBtc += btc;
+              }
+            }
+
+            // Immediately set a partial entry price estimate
+            if (totalBuyBtc > 0) {
+              const estimate = totalBuyUsd / totalBuyBtc;
+              setComputedPrices(prev => ({ ...prev, [entityId]: estimate }));
+            }
+
+            // Deep Fallback pass: fetch missing historical prices point-in-time
             for (const t of buys) {
               let valUsd = t.transaction_value_usd || 0;
               const btc = t.holding_net_change || 0;
 
-              // Deep Fallback: fetch historical price if value is 0
               if (valUsd === 0 && btc > 0 && t.date) {
                 try {
                   const dateStr = formatCgDate(t.date);
-                  const histResponse = await coinsIdHistory({ date: dateStr }, 'bitcoin');
+                  const histResponse = await withRetry(() => coinsIdHistory({ date: dateStr }, 'bitcoin'));
                   const histPrice = (histResponse as any)?.data?.market_data?.current_price?.usd || 0;
                   valUsd = histPrice * btc;
+
+                  totalBuyUsd += valUsd;
+                  totalBuyBtc += btc;
+                  
+                  // Update the estimate incrementally so the UI shows progress
+                  const newEstimate = totalBuyUsd / totalBuyBtc;
+                  setComputedPrices(prev => ({ ...prev, [entityId]: newEstimate }));
                 } catch (e) {
                   console.error(`[Backfill] Failed to fetch historical price for ${entityId} on ${t.date}`, e);
                 }
               }
-
-              totalBuyUsd += valUsd;
-              totalBuyBtc += btc;
-            }
-
-            if (totalBuyBtc > 0) {
-              newComputedPrices[entityId] = totalBuyUsd / totalBuyBtc;
-              changed = true;
             }
           } catch (e) {
             console.error(`[Backfill] Failed to fetch tx history for ${entityId}`, e);
+          } finally {
+            setComputingStatus(prev => ({ ...prev, [entityId]: false }));
           }
-        }
+        })();
       }
-
-      if (changed) {
-        setComputedPrices(newComputedPrices);
-      }
-    };
-
-    backfill();
-  }, [entities, computedPrices]);
+    }
+  }, [entities]);
 
   const leaderboard: UiAdoptionLeaderboardItem[] = useMemo(() => entities.map((entity: any) => {
     const btc = entity.total_holdings || 0;
@@ -150,8 +182,9 @@ export function useAdoptionLeaderboard(): { data: UiAdoptionLeaderboardItem[] | 
       reserveAllocationReservesPercent: reservePct,
       totalReservesUsd: reserve,
       policyStatus: 'Neutral',
+      isComputingEntryPrice: !!computingStatus[entityId],
     };
-  }), [entities, gdpData, reservesData, computedPrices]);
+  }), [entities, gdpData, reservesData, computedPrices, computingStatus]);
 
   return { data: response && gdpData && reservesData ? leaderboard : undefined, isLoading: isLoading || !gdpData || !reservesData };
 }

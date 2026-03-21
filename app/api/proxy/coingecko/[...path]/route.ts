@@ -40,7 +40,15 @@ export async function GET(request: Request, context: { params: Promise<{ path: s
       realUrl.searchParams.set('per_page', '250');
     }
 
-    const res = await fetch(realUrl.toString());
+    const urlString = realUrl.toString();
+    
+    const res = await fetch(urlString);
+    
+    if (res.status === 429) {
+      console.log(`[PROXY] Rate limited (429) on ${urlPath}. Fast failing to client...`);
+      throw { status: 429, message: 'CoinGecko API Rate Limited' };
+    }
+    
     if (!res.ok) throw new Error(`API returned ${res.status}`);
     return res.json();
   };
@@ -79,6 +87,9 @@ export async function GET(request: Request, context: { params: Promise<{ path: s
 
     return NextResponse.json(finalData);
   } catch (error: unknown) {
+    if (typeof error === 'object' && error !== null && 'status' in error && error.status === 429) {
+      return NextResponse.json({ error: 'Rate limited' }, { status: 429 });
+    }
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     console.error(`[PROXY] Failed to fetch data:`, errorMessage);
     return NextResponse.json({ error: 'Failed to fetch data' }, { status: 500 });
