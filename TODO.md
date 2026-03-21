@@ -4,9 +4,8 @@
 *   **Infrastructure & Tooling**
     *   Set up Next.js 16 with React 19, Tailwind CSS v4, and shadcn/ui.
     *   Configured Orval to generate Vercel SWR SDKs for the CoinGecko API.
-    *   Implemented MSW (Mock Service Worker) to intercept CoinGecko requests locally to prevent rate limits, validating mock data using Zod schemas.
+    *   Implemented an intelligent Next.js Route Handler Proxy (`app/api/proxy/...`) with auto-pagination and caching driven by `NEXT_USE_MOCK`.
     *   Created the Adapter Pattern (`lib/api/` and `lib/types/ui-models.ts`) to cleanly decouple UI components from backend schemas.
-    *   Added custom mock data (`lib/mock/missing-data.ts`) for GDP and geographic coordinates.
     *   Applied global Dark Theme and created a sticky top Navbar for route switching.
 *   **`/` (Home Page)**
     *   Created intro hero section with navigation cards to the three main dashboards.
@@ -39,6 +38,6 @@
 - [ ] **Diversification Simulator:** Interactive sliders allowing the user to seamlessly shift portfolio weightings and see projected changes to risk/return profiles.
 
 ### 4. General / Data Backbone
-- [ ] Complete the `<MockProvider>` handlers for any remaining CoinGecko endpoints needed by the Recharts visualizations (e.g., pulling historical chart data).
+- [ ] Ensure the Next.js API Proxy endpoints properly proxy/cache any remaining CoinGecko endpoints needed by the Recharts visualizations (e.g., pulling historical chart data).
 - [ ] Refine the mock data adapter mappings (`lib/api`) for the new dashboards as they are built.
 - [ ] (Future) Transition the mock endpoints to real API integrations once suitable providers are found for the missing macro/portfolio data.

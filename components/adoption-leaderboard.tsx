@@ -11,6 +11,14 @@ import {
 } from "@tanstack/react-table"
 import { ArrowUpDown } from "lucide-react"
 
+const getFlagEmoji = (countryCode: string) => {
+  if (!countryCode) return '🏳️';
+  return countryCode
+    .toUpperCase()
+    .replace(/./g, char => String.fromCodePoint(char.charCodeAt(0) + 127397));
+};
+
+
 import {
   Table,
   TableBody,
@@ -26,34 +34,13 @@ import { UiAdoptionLeaderboardItem } from "@/lib/types/ui-models"
 export const columns: ColumnDef<UiAdoptionLeaderboardItem>[] = [
   {
     accessorKey: "name",
-    header: "Entity & Country",
+    header: "Country",
     cell: ({ row }) => (
       <div className="flex items-center gap-3 py-1">
+        <div className="text-xl leading-none">{getFlagEmoji(row.original.countryCode || '')}</div>
         <div className="font-medium text-slate-900 dark:text-slate-100">{row.getValue("name")}</div>
-        <div className="text-xs px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-500 font-medium">
-          {row.original.countryCode || 'N/A'}
-        </div>
       </div>
     ),
-  },
-  {
-    accessorKey: "policyStatus",
-    header: "Status",
-    cell: ({ row }) => {
-      const status = row.getValue("policyStatus") as string;
-      const getBadgeColor = () => {
-        if (status === 'Legal Tender') return "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400 border-green-200 dark:border-green-800/50";
-        if (status === 'Strategic Reserve') return "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400 border-blue-200 dark:border-blue-800/50";
-        if (status === 'Invested') return "bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400 border-amber-200 dark:border-amber-800/50";
-        return "bg-slate-100 text-slate-800 dark:bg-slate-800 dark:text-slate-400 border-slate-200 dark:border-slate-700";
-      };
-      
-      return (
-        <span className={`px-2.5 py-1 text-xs font-semibold rounded-md border ${getBadgeColor()}`}>
-          {status}
-        </span>
-      );
-    },
   },
   {
     accessorKey: "totalHoldingsBtc",
@@ -64,39 +51,101 @@ export const columns: ColumnDef<UiAdoptionLeaderboardItem>[] = [
           onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
           className="hover:bg-transparent px-0 text-amber-600/80 hover:text-amber-600 font-semibold"
         >
-          BTC Holdings
+          Holdings
           <ArrowUpDown className="ml-2 h-4 w-4" />
         </Button>
       )
     },
-    cell: ({ row }) => {
-      const amount = parseFloat(row.getValue("totalHoldingsBtc"));
-      return <div className="font-bold tabular-nums text-amber-500">{amount.toLocaleString()} ₿</div>
-    },
-  },
-  {
-    accessorKey: "totalValueUsd",
-    header: () => <div className="text-right">USD Value</div>,
-    cell: ({ row }) => {
-      const amount = parseFloat(row.getValue("totalValueUsd"));
-      const formatted = new Intl.NumberFormat("en-US", {
-        style: "currency",
-        currency: "USD",
-        maximumFractionDigits: 0
-      }).format(amount)
-      return <div className="text-right font-medium text-slate-600 dark:text-slate-300 tabular-nums">{formatted}</div>
-    },
+    cell: ({ row }) => <HoldingsCell row={row.original} />
   },
   {
     accessorKey: "reserveAllocationGdpPercent",
     header: () => <div className="text-right">% of GDP</div>,
-    cell: ({ row }) => {
-      const pct = parseFloat(row.getValue("reserveAllocationGdpPercent"));
-      if (pct === 0) return <div className="text-right text-muted-foreground tabular-nums">—</div>;
-      return <div className="text-right font-bold tabular-nums text-emerald-600 dark:text-emerald-400">{pct.toFixed(2)}%</div>
-    },
+    cell: ({ row }) => <GdpCell row={row.original} />
   },
 ]
+
+const formatNumber = (num: number) => {
+  if (num >= 1e12) return (num / 1e12).toFixed(1) + 't';
+  if (num >= 1e9) return (num / 1e9).toFixed(1) + 'b';
+  if (num >= 1e6) return (num / 1e6).toFixed(1) + 'm';
+  if (num >= 1e3) return (num / 1e3).toFixed(1) + 'k';
+  if (num < 1 && num > 0) return num.toFixed(2);
+  return Math.round(num).toString();
+};
+
+function HoldingsCell({ row }: { row: UiAdoptionLeaderboardItem }) {
+  const [showExact, setShowExact] = React.useState(false);
+  
+  const btcAmount = row.totalHoldingsBtc;
+  const usdAmount = row.totalValueUsd;
+
+  if (btcAmount === 0) {
+    return <div className="text-muted-foreground tabular-nums">—</div>;
+  }
+
+  return (
+    <div 
+      className="flex items-center gap-1.5 py-1 cursor-pointer select-none"
+      onClick={(e) => {
+        e.stopPropagation();
+        setShowExact(!showExact);
+      }}
+    >
+      {showExact ? (
+        <div className="flex flex-col text-[10px] leading-none space-y-0.5 transition-all duration-200">
+          <div className="font-bold tabular-nums text-amber-500">
+            {btcAmount.toLocaleString(undefined, { maximumFractionDigits: 8 })} ₿
+          </div>
+          <div className="font-medium text-white tabular-nums">
+            ${usdAmount.toLocaleString(undefined, { maximumFractionDigits: 2 })}
+          </div>
+        </div>
+      ) : (
+        <div className="flex items-center gap-1.5 transition-all duration-200">
+          <div className="font-bold tabular-nums text-amber-500">{formatNumber(btcAmount)} ₿</div>
+          <div className="text-slate-400 font-medium text-sm">/</div>
+          <div className="font-medium text-white tabular-nums">${formatNumber(usdAmount)}</div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function GdpCell({ row }: { row: UiAdoptionLeaderboardItem }) {
+  const [showRaw, setShowRaw] = React.useState(false);
+  
+  const btcAmount = row.totalHoldingsBtc;
+  const pct = row.reserveAllocationGdpPercent;
+  const usdValue = row.totalValueUsd;
+  const gdpUsd = row.totalGdpUsd;
+
+  if (btcAmount === 0 || isNaN(pct) || pct === 0) {
+    return <div className="text-right text-muted-foreground tabular-nums">—</div>;
+  }
+
+  let colorClass = "text-emerald-600 dark:text-emerald-400";
+  if (pct >= 5) colorClass = "text-red-600 dark:text-red-500";
+  else if (pct >= 1) colorClass = "text-amber-500 dark:text-amber-400";
+
+  return (
+    <div 
+      className={`text-right font-bold tabular-nums cursor-pointer select-none ${colorClass}`}
+      onClick={(e) => {
+        e.stopPropagation();
+        setShowRaw(!showRaw);
+      }}
+    >
+      {showRaw ? (
+        <span className="text-xs transition-all duration-200">
+          ${formatNumber(usdValue)} / ${formatNumber(gdpUsd)}
+        </span>
+      ) : (
+        <span className="transition-all duration-200">{pct.toFixed(2)}%</span>
+      )}
+    </div>
+  );
+}
 
 export function AdoptionLeaderboard() {
   const { data, isLoading } = useAdoptionLeaderboard();

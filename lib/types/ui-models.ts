@@ -16,5 +16,6 @@ export interface UiAdoptionLeaderboardItem {
   totalHoldingsBtc: number;
   totalValueUsd: number;
   reserveAllocationGdpPercent: number;
+  totalGdpUsd: number;
   policyStatus: PolicyStatus;
 }

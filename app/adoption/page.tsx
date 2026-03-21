@@ -27,7 +27,7 @@ export default function AdoptionDashboardRoute() {
       {/* Second Page Viewport (Leaderboard) */}
       <div className="min-h-[calc(100vh-4rem)] bg-slate-900/20 border-t border-border/40">
         <div className="container mx-auto p-6 space-y-6 pt-12">
-          <h2 className="text-2xl font-bold tracking-tight">Adoption Leaderboard</h2>
+          <h2 className="text-2xl font-bold tracking-tight">Government Holdings</h2>
           <AdoptionLeaderboard />
         </div>
       </div>

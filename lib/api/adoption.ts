@@ -1,4 +1,5 @@
-import { useEntitiesList } from '@/sdk/coingecko/public-treasury/public-treasury';
+import { useEffect, useState } from 'react';
+import { useEntitiesList, useCompaniesPublicTreasury } from '@/sdk/coingecko/public-treasury/public-treasury';
 import type { EntitiesListItem } from '@/sdk/coingecko/model';
 import { UiMapMarker, UiAdoptionLeaderboardItem } from '../types/ui-models';
 
@@ -23,22 +24,40 @@ export function useGlobalAdoptionMap(): { data: UiMapMarker[] | undefined; isLoa
 }
 
 export function useAdoptionLeaderboard(): { data: UiAdoptionLeaderboardItem[] | undefined; isLoading: boolean } {
-  const { data: response, isLoading } = useEntitiesList({ entity_type: 'government' });
-  const entities = response?.data || [];
+  const { data: response, isLoading } = useCompaniesPublicTreasury('governments');
+  const [gdpData, setGdpData] = useState<Record<string, number> | null>(null);
 
-  const leaderboard: UiAdoptionLeaderboardItem[] = entities
-    .filter((e): e is EntitiesListItem & { id: string } => !!e.id)
-    .map((entity) => {
-      return {
-        id: entity.id,
-        name: entity.name || 'Unknown',
-        countryCode: entity.country || 'US',
-        totalHoldingsBtc: 0, 
-        totalValueUsd: 0,
-        reserveAllocationGdpPercent: 0,
-        policyStatus: 'Neutral',
-      };
-    });
+  useEffect(() => {
+    fetch('/data/gdp.json')
+      .then(r => r.json())
+      .then(setGdpData)
+      .catch(console.error);
+  }, []);
 
-  return { data: response ? leaderboard : undefined, isLoading };
+  const entities: any[] = (response?.data as any)?.companies || (response?.data as any)?.governments || [];
+
+  const leaderboard: UiAdoptionLeaderboardItem[] = entities.map((entity: any) => {
+    const btc = entity.total_holdings || 0;
+    const usd = entity.total_current_value_usd || 0;
+    const countryCode = entity.country || 'US';
+    
+    let gdp = 0;
+    if (gdpData) {
+      gdp = gdpData[countryCode] || gdpData[entity.name || ''] || 0;
+    }
+    const gdpPct = gdp ? (usd / gdp) * 100 : 0;
+
+    return {
+      id: entity.name?.toLowerCase().replace(/\s+/g, '-') || 'unknown',
+      name: entity.name || 'Unknown',
+      countryCode: countryCode,
+      totalHoldingsBtc: btc, 
+      totalValueUsd: usd,
+      reserveAllocationGdpPercent: gdpPct,
+      totalGdpUsd: gdp,
+      policyStatus: 'Neutral',
+    };
+  });
+
+  return { data: response && gdpData ? leaderboard : undefined, isLoading: isLoading || !gdpData };
 }
