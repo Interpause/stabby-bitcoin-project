@@ -62,6 +62,7 @@ export function useAdoptionLeaderboard(): { data: UiAdoptionLeaderboardItem[] | 
       name: entity.name || 'Unknown',
       countryCode: countryCode,
       totalHoldingsBtc: btc, 
+      totalEntryValueUsd: entity.total_entry_value_usd,
       totalValueUsd: usd,
       reserveAllocationGdpPercent: gdpPct,
       totalGdpUsd: gdp,

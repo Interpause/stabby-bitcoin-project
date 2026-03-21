@@ -31,6 +31,7 @@ import {
 import { Button } from "@/components/ui/button"
 import { useAdoptionLeaderboard } from "@/lib/api/adoption"
 import { UiAdoptionLeaderboardItem } from "@/lib/types/ui-models"
+import { usePublicTreasuryTransactionHistory } from "@/sdk/coingecko/public-treasury/public-treasury"
 
 const SortableHeader = ({ column, title, className = "" }: { column: Column<UiAdoptionLeaderboardItem, unknown>, title: string, className?: string }) => (
   <Button
@@ -59,6 +60,20 @@ export const columns: ColumnDef<UiAdoptionLeaderboardItem>[] = [
     id: "totalHoldingsBtc",
     header: ({ column }) => <SortableHeader column={column} title="Holdings" className="text-slate-900 dark:text-slate-100" />,
     cell: ({ row }) => <HoldingsCell row={row.original} />,
+    sortUndefined: 'last',
+  },
+  {
+    accessorFn: (row) => {
+      if (row.totalHoldingsBtc === 0) return undefined;
+      return (row.totalEntryValueUsd !== undefined && row.totalEntryValueUsd > 0) ? (row.totalEntryValueUsd / row.totalHoldingsBtc) : -1;
+    },
+    id: "avgPurchasePrice",
+    header: ({ column }) => (
+      <div className="text-right">
+        <SortableHeader column={column} title="Avg. Purchase Price" className="text-slate-900 dark:text-slate-100 justify-end w-full" />
+      </div>
+    ),
+    cell: ({ row }) => <AvgPurchasePriceCell row={row.original} />,
     sortUndefined: 'last',
   },
   {
@@ -130,6 +145,62 @@ function HoldingsCell({ row }: { row: UiAdoptionLeaderboardItem }) {
       )}
     </div>
   );
+}
+
+function AvgPurchasePriceCell({ row }: { row: UiAdoptionLeaderboardItem }) {
+  const { totalEntryValueUsd, totalHoldingsBtc, id } = row;
+
+  if (totalHoldingsBtc === 0) {
+    return <div className="text-right text-muted-foreground tabular-nums">—</div>;
+  }
+
+  if (totalEntryValueUsd !== undefined && totalEntryValueUsd > 0) {
+    const avgPrice = totalEntryValueUsd / totalHoldingsBtc;
+    console.log(`[AvgPurchasePriceCell] ${id}: Using totalEntryValueUsd (${totalEntryValueUsd}) / totalHoldingsBtc (${totalHoldingsBtc}) = ${avgPrice}`);
+    return (
+      <div className="text-right font-medium text-slate-900 dark:text-slate-100 tabular-nums">
+        ${avgPrice.toLocaleString(undefined, { maximumFractionDigits: 0 })}
+      </div>
+    );
+  }
+
+  // Fallback to fetch transaction history 
+  console.log(`[AvgPurchasePriceCell] ${id}: Missing or 0 totalEntryValueUsd. Falling back to transaction history.`);
+  return <AvgPurchasePriceFallback entityId={id} />;
+}
+
+function AvgPurchasePriceFallback({ entityId }: { entityId: string }) {
+  const { data, isLoading } = usePublicTreasuryTransactionHistory(undefined, entityId);
+
+  if (isLoading) {
+    return <div className="text-right text-muted-foreground tabular-nums text-[10px] animate-pulse">Calculating...</div>;
+  }
+
+  const transactions = (data as any)?.transactions || [];
+  const buys = transactions.filter((t: any) => t.type === 'buy');
+
+  let totalBuyUsd = 0;
+  let totalBuyBtc = 0;
+
+  for (const t of buys) {
+    if (t.transaction_value_usd !== undefined && t.holding_net_change !== undefined) {
+      totalBuyUsd += t.transaction_value_usd;
+      totalBuyBtc += t.holding_net_change;
+    }
+  }
+
+  console.log(`[AvgPurchasePriceFallback] ${entityId}: Retrieved ${transactions.length} total txs. Filtered to ${buys.length} buys. Computed ${totalBuyUsd} total usd / ${totalBuyBtc} btc`);
+
+  if (totalBuyBtc > 0) {
+    const avgPrice = totalBuyUsd / totalBuyBtc;
+    return (
+      <div className="text-right font-medium text-slate-900 dark:text-slate-100 tabular-nums">
+        ${avgPrice.toLocaleString(undefined, { maximumFractionDigits: 0 })}
+      </div>
+    );
+  }
+
+  return <div className="text-right text-muted-foreground tabular-nums text-[10px]">—</div>;
 }
 
 function PercentageCell({ row, pctKey, usdKey }: { row: UiAdoptionLeaderboardItem, pctKey: 'reserveAllocationGdpPercent' | 'reserveAllocationReservesPercent', usdKey: 'totalGdpUsd' | 'totalReservesUsd' }) {

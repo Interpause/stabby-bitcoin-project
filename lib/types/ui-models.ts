@@ -14,6 +14,7 @@ export interface UiAdoptionLeaderboardItem {
   name: string;
   countryCode: string;
   totalHoldingsBtc: number;
+  totalEntryValueUsd?: number;
   totalValueUsd: number;
   reserveAllocationGdpPercent: number;
   totalGdpUsd: number;
