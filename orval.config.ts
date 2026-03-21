@@ -7,10 +7,16 @@ export default defineConfig({
   coingecko: {
     output: {
       mode: "tags-split",
-      target: "sdk/coingecko/coingecko.ts",
+      target: "sdk/coingecko/api.ts",
       schemas: "sdk/coingecko/model",
       client: "swr",
       mock: true,
+      override: {
+        mutator: {
+          path: './lib/api/clients/coingecko-client.ts',
+          name: 'coingeckoInstance',
+        },
+      },
     },
     input: { target: COINGECKO_OPENAPI_URL },
   },
@@ -18,7 +24,7 @@ export default defineConfig({
     output: {
       mode: "tags-split",
       client: "zod",
-      target: "sdk/coingecko/coingecko.ts",
+      target: "sdk/coingecko/zod.ts",
       fileExtension: ".zod.ts",
     },
     input: { target: COINGECKO_OPENAPI_URL },
