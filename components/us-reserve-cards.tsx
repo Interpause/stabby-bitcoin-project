@@ -23,9 +23,6 @@ export function UsReserveCards() {
   return (
     <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
       <Card className="bg-gradient-to-br from-blue-50/50 to-white dark:from-slate-900 dark:to-slate-950 border-blue-200/50 dark:border-blue-900/50 shadow-sm relative overflow-hidden">
-        <div className="absolute top-0 right-0 p-4 opacity-10">
-          <Landmark className="w-24 h-24" />
-        </div>
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1 pt-3 px-4">
           <CardTitle className="text-xs font-semibold text-slate-400">Held by Governments</CardTitle>
           <Landmark className="h-3.5 w-3.5 text-blue-400" />
