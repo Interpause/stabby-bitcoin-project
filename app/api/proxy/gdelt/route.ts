@@ -32,18 +32,18 @@ export async function GET(request: Request) {
 
   console.log(`[PROXY] Fetching from GDelt: ${gdeltUrl.toString()}`);
   
-  const fetchWithRetry = async (url: string, retries = 1): Promise<Response> => {
-    const res = await fetch(url);
+  const fetchWithRetry = async (url: string, options: RequestInit = {}, retries = 1): Promise<Response> => {
+    const res = await fetch(url, options);
     if (res.status === 429 && retries > 0) {
       console.log(`[PROXY] Rate limited (429) on GDelt. Waiting 5s to retry...`);
       await new Promise(resolve => setTimeout(resolve, 5500));
-      return fetchWithRetry(url, retries - 1);
+      return fetchWithRetry(url, options, retries - 1);
     }
     return res;
   };
 
   try {
-    const res = await fetchWithRetry(gdeltUrl.toString());
+    const res = await fetchWithRetry(gdeltUrl.toString(), { next: { revalidate: 31536000 } });
     
     const resText = await res.text();
 
@@ -88,6 +88,7 @@ export async function GET(request: Request) {
                 'User-Agent': 'Twitterbot/1.0'
               },
               signal: AbortSignal.timeout(5000), // timeout after 5s
+              next: { revalidate: 31536000 }
             });
             if (articleRes.ok) {
               const html = await articleRes.text();

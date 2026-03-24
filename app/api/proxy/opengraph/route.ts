@@ -31,8 +31,8 @@ export async function GET(request: Request) {
     const microlinkUrl = `https://api.microlink.io?url=${encodeURIComponent(targetUrl)}`;
     const res = await fetch(microlinkUrl, {
       signal: AbortSignal.timeout(10000),
-      // Adding next.js standard fetch cache to avoid rapid hits
-      next: { revalidate: 3600 } 
+      // Adding next.js standard fetch cache to avoid rapid hits globally (1 year for permanent caching)
+      next: { revalidate: 31536000 } 
     });
 
     if (!res.ok) {
