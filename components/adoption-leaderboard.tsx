@@ -281,8 +281,7 @@ export function AdoptionLeaderboard() {
               <TableRow
                 key={row.id}
                 data-state={row.getIsSelected() && "selected"}
-                className="hover:bg-slate-50 dark:hover:bg-slate-900/50 cursor-pointer"
-                onClick={() => console.log('Open drilldown for', row.original.id)}
+                className="hover:bg-slate-50 dark:hover:bg-slate-900/50"
               >
                 {row.getVisibleCells().map((cell) => (
                   <TableCell key={cell.id}>

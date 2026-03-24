@@ -8,6 +8,7 @@ export function Navbar() {
   
   const links = [
     { href: '/', label: 'Home' },
+    { href: '/news', label: 'News' },
     // { href: '/adoption', label: 'Adoption' },
     // { href: '/macro', label: 'Macro' },
     // { href: '/portfolio', label: 'Portfolio' },
