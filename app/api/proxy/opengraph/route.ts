@@ -12,6 +12,7 @@ export async function GET(request: Request) {
   }
 
   const isMockMode = process.env.NEXT_USE_MOCK === 'true';
+  const revalidateTime = isMockMode ? 31536000 : 3600;
   const urlHash = crypto.createHash('md5').update(targetUrl).digest('hex');
   const cacheDir = path.join(process.cwd(), 'lib/mock/cache/opengraph');
   const cacheFile = path.join(cacheDir, `${urlHash}.json`);
@@ -31,8 +32,8 @@ export async function GET(request: Request) {
     const microlinkUrl = `https://api.microlink.io?url=${encodeURIComponent(targetUrl)}`;
     const res = await fetch(microlinkUrl, {
       signal: AbortSignal.timeout(10000),
-      // Adding next.js standard fetch cache to avoid rapid hits globally (1 year for permanent caching)
-      next: { revalidate: 31536000 } 
+      // Adding next.js standard fetch cache to avoid rapid hits globally (1 year for permanent caching if mock mode)
+      next: { revalidate: revalidateTime } 
     });
 
     if (!res.ok) {

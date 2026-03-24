@@ -9,6 +9,7 @@ const FMP_BASE_URL = "https://financialmodelingprep.com";
 export async function GET(req: Request, { params }: { params: Promise<{ path: string[] }> }) {
   const resolvedParams = await params;
   const isMockMode = process.env.NEXT_USE_MOCK === 'true';
+  const revalidateTime = isMockMode ? 31536000 : 3600;
   const urlPath = resolvedParams.path.join("/");
   const url = new URL(req.url);
 
@@ -51,7 +52,7 @@ export async function GET(req: Request, { params }: { params: Promise<{ path: st
         "Accept": "application/json",
       },
       next: {
-        revalidate: 3600, // cache for 1 hour at the edge/server
+        revalidate: revalidateTime,
       },
     });
 
@@ -73,7 +74,7 @@ export async function GET(req: Request, { params }: { params: Promise<{ path: st
     // Add cache control if desired, though SWR handles client-side caching
     return NextResponse.json(data, {
       headers: {
-        "Cache-Control": "public, s-maxage=3600, stale-while-revalidate=86400",
+        "Cache-Control": `public, s-maxage=${revalidateTime}, stale-while-revalidate=86400`,
       },
     });
   } catch (error) {

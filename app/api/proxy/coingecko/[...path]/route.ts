@@ -5,6 +5,7 @@ import path from 'path';
 export async function GET(request: Request, context: { params: Promise<{ path: string[] }> }) {
   const params = await context.params;
   const isMockMode = process.env.NEXT_USE_MOCK === 'true';
+  const revalidateTime = isMockMode ? 31536000 : 3600;
   const urlPath = params.path.join('/');
   const searchParams = new URL(request.url).searchParams;
   
@@ -42,7 +43,7 @@ export async function GET(request: Request, context: { params: Promise<{ path: s
 
     const urlString = realUrl.toString();
     
-    const res = await fetch(urlString);
+    const res = await fetch(urlString, { next: { revalidate: revalidateTime } });
     
     if (res.status === 429) {
       console.log(`[PROXY] Rate limited (429) on ${urlPath}. Fast failing to client...`);

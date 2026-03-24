@@ -5,6 +5,7 @@ import * as cheerio from 'cheerio';
 
 export async function GET(request: Request) {
   const isMockMode = process.env.NEXT_USE_MOCK === 'true';
+  const revalidateTime = isMockMode ? 31536000 : 3600;
   const searchParams = new URL(request.url).searchParams;
   
   // Create cache filename based on query params
@@ -43,7 +44,7 @@ export async function GET(request: Request) {
   };
 
   try {
-    const res = await fetchWithRetry(gdeltUrl.toString(), { next: { revalidate: 31536000 } });
+    const res = await fetchWithRetry(gdeltUrl.toString(), { next: { revalidate: revalidateTime } });
     
     const resText = await res.text();
 
@@ -88,7 +89,7 @@ export async function GET(request: Request) {
                 'User-Agent': 'Twitterbot/1.0'
               },
               signal: AbortSignal.timeout(5000), // timeout after 5s
-              next: { revalidate: 31536000 }
+              next: { revalidate: revalidateTime }
             });
             if (articleRes.ok) {
               const html = await articleRes.text();
