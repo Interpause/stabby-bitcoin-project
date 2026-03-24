@@ -29,6 +29,7 @@
     "zod": "^4.3.6"
   },
   "devDependencies": {
+    "@faker-js/faker": "^10.4.0",
     "@tailwindcss/postcss": "^4",
     "@types/d3-scale": "^4.0.9",
     "@types/node": "^20",
