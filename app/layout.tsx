@@ -1,14 +1,14 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Poppins, Roboto_Mono } from "next/font/google";
 import "./globals.css";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
+const poppins = Poppins({
+  variable: "--font-poppins",
   subsets: ["latin"],
 });
 
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
+const robotoMono = Roboto_Mono({
+  variable: "--font-roboto-mono",
   subsets: ["latin"],
 });export const metadata: Metadata = {
   title: "FNCE313 G4 Grp4",
@@ -27,7 +27,7 @@ export default function RootLayout({
   return (
     <html lang="en" className="dark" style={{ colorScheme: 'dark' }}>
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased min-h-screen flex flex-col bg-background`}
+        className={`${poppins.variable} ${robotoMono.variable} antialiased min-h-screen flex flex-col bg-background`}
       >
         <MockProvider isEnabled={process.env.NEXT_USE_MOCK === 'true'}>
           <TooltipProvider>
