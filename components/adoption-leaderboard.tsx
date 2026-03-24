@@ -10,8 +10,8 @@ import {
   SortingState,
   Column,
 } from "@tanstack/react-table"
-import { ArrowUpDown, Triangle, Loader2 } from "lucide-react"
-
+import { ArrowUpDown, Triangle, Loader2, Maximize2 } from "lucide-react"
+import { TransactionHistoryModal } from "./transaction-history-modal"
 const getFlagEmoji = (countryCode: string) => {
   if (!countryCode) return '🏳️';
   return countryCode
@@ -96,6 +96,24 @@ export const columns: ColumnDef<UiAdoptionLeaderboardItem>[] = [
     ),
     cell: ({ row }) => <PercentageCell row={row.original} pctKey="reserveAllocationReservesPercent" usdKey="totalReservesUsd" />,
     sortUndefined: 'last',
+  },
+  {
+    id: "actions",
+    cell: ({ row, table }) => (
+      <div className="flex justify-end pr-2">
+        <Button 
+          variant="ghost" 
+          size="icon" 
+          className="h-8 w-8 text-muted-foreground hover:text-amber-600 dark:hover:text-amber-500 hover:bg-amber-100 dark:hover:bg-amber-500/10"
+          onClick={(e) => {
+            e.stopPropagation();
+            (table.options.meta as any)?.expandRow(row.original.id, row.original.name);
+          }}
+        >
+          <Maximize2 className="h-4 w-4" />
+        </Button>
+      </div>
+    ),
   },
 ]
 
@@ -238,6 +256,8 @@ export function AdoptionLeaderboard() {
   const [sorting, setSorting] = React.useState<SortingState>([
     { id: "totalHoldingsBtc", desc: true }
   ])
+  const [selectedEntityId, setSelectedEntityId] = React.useState<string | null>(null);
+  const [selectedEntityName, setSelectedEntityName] = React.useState<string | undefined>();
 
   const table = useReactTable({
     data: data || [],
@@ -248,6 +268,12 @@ export function AdoptionLeaderboard() {
     state: {
       sorting,
     },
+    meta: {
+      expandRow: (id: string, name: string) => {
+        setSelectedEntityId(id);
+        setSelectedEntityName(name);
+      }
+    }
   })
 
   if (isLoading) {
@@ -299,6 +325,12 @@ export function AdoptionLeaderboard() {
           )}
         </TableBody>
       </Table>
+      <TransactionHistoryModal 
+        entityId={selectedEntityId}
+        entityName={selectedEntityName}
+        isOpen={!!selectedEntityId}
+        onOpenChange={(open) => !open && setSelectedEntityId(null)}
+      />
     </div>
   )
 }
