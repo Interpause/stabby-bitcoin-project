@@ -5,6 +5,8 @@ import * as cheerio from 'cheerio';
 
 export async function GET(request: Request) {
   const isMockMode = process.env.NEXT_USE_MOCK === 'true';
+  const isDev = process.env.NODE_ENV === 'development';
+  const useLocalJsonCache = isMockMode && isDev;
   const revalidateTime = isMockMode ? 31536000 : 3600;
   const searchParams = new URL(request.url).searchParams;
   
@@ -18,7 +20,7 @@ export async function GET(request: Request) {
   const cacheFileName = `gdelt${safeParamString ? `_${safeParamString}` : ''}.json`;
   const cacheFile = path.join(cacheDir, cacheFileName);
 
-  if (isMockMode) {
+  if (useLocalJsonCache) {
     try {
       const cachedData = await fs.readFile(cacheFile, 'utf-8');
       console.log(`[PROXY] Serving cached GDelt data from ${cacheFileName}`);
@@ -112,7 +114,7 @@ export async function GET(request: Request) {
       finalData = { ...finalData, articles: enrichedArticles };
     }
 
-    if (isMockMode) {
+    if (useLocalJsonCache) {
       await fs.mkdir(cacheDir, { recursive: true });
       await fs.writeFile(cacheFile, JSON.stringify(finalData, null, 2));
       console.log(`[PROXY] Successfully cached GDelt data to ${cacheFileName}`);

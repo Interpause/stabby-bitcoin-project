@@ -5,6 +5,8 @@ import path from 'path';
 export async function GET(request: Request, context: { params: Promise<{ path: string[] }> }) {
   const params = await context.params;
   const isMockMode = process.env.NEXT_USE_MOCK === 'true';
+  const isDev = process.env.NODE_ENV === 'development';
+  const useLocalJsonCache = isMockMode && isDev;
   const revalidateTime = isMockMode ? 31536000 : 3600;
   const urlPath = params.path.join('/');
   const searchParams = new URL(request.url).searchParams;
@@ -17,7 +19,7 @@ export async function GET(request: Request, context: { params: Promise<{ path: s
   const cacheFileName = `${urlPath.replace(/\//g, '_')}${paramString ? `_${paramString}` : ''}.json`;
   const cacheFile = path.join(cacheDir, cacheFileName);
 
-  if (isMockMode) {
+  if (useLocalJsonCache) {
     try {
       const cachedData = await fs.readFile(cacheFile, 'utf-8');
       console.log(`[PROXY] Serving cached data for /${urlPath} from ${cacheFileName}`);
@@ -80,7 +82,7 @@ export async function GET(request: Request, context: { params: Promise<{ path: s
       finalData = await fetchPage(Number(searchParams.get('page')) || 1);
     }
 
-    if (isMockMode) {
+    if (useLocalJsonCache) {
       await fs.mkdir(cacheDir, { recursive: true });
       await fs.writeFile(cacheFile, JSON.stringify(finalData, null, 2));
       console.log(`[PROXY] Successfully cached data to ${cacheFileName}`);

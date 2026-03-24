@@ -9,6 +9,8 @@ const FMP_BASE_URL = "https://financialmodelingprep.com";
 export async function GET(req: Request, { params }: { params: Promise<{ path: string[] }> }) {
   const resolvedParams = await params;
   const isMockMode = process.env.NEXT_USE_MOCK === 'true';
+  const isDev = process.env.NODE_ENV === 'development';
+  const useLocalJsonCache = isMockMode && isDev;
   const revalidateTime = isMockMode ? 31536000 : 3600;
   const urlPath = resolvedParams.path.join("/");
   const url = new URL(req.url);
@@ -24,7 +26,7 @@ export async function GET(req: Request, { params }: { params: Promise<{ path: st
   const cacheFileName = `${urlPath.replace(/\//g, '_')}${paramString ? `_${paramString}` : ''}.json`;
   const cacheFile = path.join(cacheDir, cacheFileName);
 
-  if (isMockMode) {
+  if (useLocalJsonCache) {
     try {
       const cachedData = await fs.readFile(cacheFile, 'utf-8');
       console.log(`[PROXY] Serving cached data for /${urlPath} from ${cacheFileName}`);
@@ -65,7 +67,7 @@ export async function GET(req: Request, { params }: { params: Promise<{ path: st
 
     const data = await response.json();
 
-    if (isMockMode) {
+    if (useLocalJsonCache) {
       await fs.mkdir(cacheDir, { recursive: true });
       await fs.writeFile(cacheFile, JSON.stringify(data, null, 2));
       console.log(`[PROXY] Successfully cached data to ${cacheFileName}`);

@@ -12,13 +12,15 @@ export async function GET(request: Request) {
   }
 
   const isMockMode = process.env.NEXT_USE_MOCK === 'true';
+  const isDev = process.env.NODE_ENV === 'development';
+  const useLocalJsonCache = isMockMode && isDev;
   const revalidateTime = isMockMode ? 31536000 : 3600;
   const urlHash = crypto.createHash('md5').update(targetUrl).digest('hex');
   const cacheDir = path.join(process.cwd(), 'lib/mock/cache/opengraph');
   const cacheFile = path.join(cacheDir, `${urlHash}.json`);
 
   // Simple file cache (for mock mode or general caching depending on requirement, user asked to "please cache this")
-  if (isMockMode) {
+  if (useLocalJsonCache) {
     try {
       const cachedData = await fs.readFile(cacheFile, 'utf-8');
       console.log(`[PROXY] Serving cached OpenGraph for ${targetUrl}`);
@@ -64,7 +66,7 @@ export async function GET(request: Request) {
       domain,
     };
 
-    if (isMockMode) {
+    if (useLocalJsonCache) {
       await fs.mkdir(cacheDir, { recursive: true });
       await fs.writeFile(cacheFile, JSON.stringify(previewData, null, 2));
       console.log(`[PROXY] Cached OpenGraph for ${targetUrl} as ${urlHash}.json`);
