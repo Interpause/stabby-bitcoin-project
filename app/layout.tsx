@@ -12,8 +12,8 @@ const robotoMono = Roboto_Mono({
   variable: "--font-roboto-mono",
   subsets: ["latin"],
 });export const metadata: Metadata = {
-  title: "FNCE313 G4 Grp4",
-  description: "Sovereign Bitcoin Tracker by FNCE313 G4 Grp4",
+  title: "SoverAlign",
+  description: "Aligning All the Sovereigns Together by FNCE313 G4 Grp4",
 };
 
 import { TooltipProvider } from "@/components/ui/tooltip";

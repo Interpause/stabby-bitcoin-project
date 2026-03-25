@@ -19,7 +19,7 @@ export function Navbar() {
       <div className="container mx-auto px-6 h-16 flex items-center justify-between">
         <div className="flex items-center gap-8">
           <Link href="/" className="font-bold text-xl tracking-tight flex items-center gap-2">
-            FNCE313 G4 Grp4 <span className="text-amber-500">BTC</span>
+            SoverAlign <span className="text-amber-500">BTC</span>
           </Link>
           <div className="hidden md:flex items-center gap-6">
             {links.map(link => (
