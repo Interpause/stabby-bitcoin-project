@@ -1,9 +1,22 @@
 import { NextResponse } from 'next/server';
+import { MOCK_GDELT_DATA } from '@/lib/mock/cache/gdeltData';
 import fs from 'fs/promises';
 import path from 'path';
 import * as cheerio from 'cheerio';
 
 export async function GET(request: Request) {
+  // --- HARDCODE OVERRIDE START ---
+  // This forces the route to return your specific Bitcoin JSON if it exists.
+  try {
+    // We check for 'gdelt_data.json' inside 'lib/mock/cache/gdelt'
+    console.log(`[PROXY] Serving hardcoded GDELT data from gdeltData.ts`);
+    return NextResponse.json(MOCK_GDELT_DATA);
+  } catch (err) {
+    // If the file isn't there (e.g. not yet downloaded), it falls back to the original logic below.
+    console.warn(`[PROXY] Hardcoded file not found at lib/mock/cache/gdelt/gdelt_data.json. Falling back to live logic.`);
+  }
+  // --- HARDCODE OVERRIDE END ---
+
   const isMockMode = process.env.NEXT_USE_MOCK === 'true';
   const isDev = process.env.NODE_ENV === 'development';
   const useLocalJsonCache = isMockMode && isDev;
@@ -47,7 +60,6 @@ export async function GET(request: Request) {
 
   try {
     const res = await fetchWithRetry(gdeltUrl.toString(), { next: { revalidate: revalidateTime } });
-    
     const resText = await res.text();
 
     if (res.status === 429) {
@@ -64,19 +76,17 @@ export async function GET(request: Request) {
       gdeltData = JSON.parse(resText);
     } catch {
       console.error(`[PROXY] Failed to parse GDelt JSON. Raw response: ${resText.slice(0, 500)}`);
-      throw { status: 500, message: 'Invalid JSON response from GDelt' };
+      throw { status: 500, message: 'Invalid JSON response from GDELT' };
     }
 
     let finalData = gdeltData;
 
-    // Filter to English only if the user didn't specify (robustness)
     if (finalData.articles && Array.isArray(finalData.articles)) {
       finalData.articles = (finalData.articles as { language?: string }[]).filter((a) => 
         !a.language || a.language.toLowerCase() === 'english'
-      ).slice(0, 15); // Limit to top 15 for faster scraping/loading
+      ).slice(0, 15); 
     }
 
-    // Scrape open graph snippets if there are articles
     if (finalData.articles && Array.isArray(finalData.articles)) {
       console.log(`[PROXY] Scraping Open Graph snippets for ${finalData.articles.length} articles...`);
       
@@ -85,12 +95,9 @@ export async function GET(request: Request) {
           const article = item as { url?: unknown; snippet?: string; [key: string]: unknown; language?: string };
           if (!article || typeof article.url !== 'string') return article;
           try {
-            // Use User-Agent mimicking Twitterbot to bypass blocks
             const articleRes = await fetch(article.url, {
-              headers: {
-                'User-Agent': 'Twitterbot/1.0'
-              },
-              signal: AbortSignal.timeout(5000), // timeout after 5s
+              headers: { 'User-Agent': 'Twitterbot/1.0' },
+              signal: AbortSignal.timeout(5000),
               next: { revalidate: revalidateTime }
             });
             if (articleRes.ok) {
@@ -99,7 +106,6 @@ export async function GET(request: Request) {
               let snippet = $('meta[property="og:description"]').attr('content') || 
                             $('meta[name="description"]').attr('content') || '';
                             
-              // Fallback to twitter card if available
               if (!snippet) {
                 snippet = $('meta[name="twitter:description"]').attr('content') || '';
               }
